@@ -1,4 +1,3 @@
-```markdown
 # Bitcoin Wallet Generator
 
 This is a simple Python script that generates Bitcoin paper wallets and serves them through an HTTP server. It uses the `bit`, `Pillow`, and `qrcode` libraries for key generation, image manipulation, and QR code generation respectively.
