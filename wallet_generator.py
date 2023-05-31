@@ -9,8 +9,8 @@ import uuid
 import time
 import threading
 
-# Define the folder name to store temporary images
-TEMP_FOLDER = "env_gen"
+# Define the absolute path of the folder to store temporary images
+TEMP_FOLDER = os.path.abspath("env_gen")
 
 class BitcoinWalletHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -143,18 +143,22 @@ def generate_paper_wallet(private_key, bitcoin_address, segwit_address):
     # Save the paper wallet image to a file
     paper_wallet_image.save(filepath, format="JPEG", quality=90)
 
-    # Delete the file after 30 minutes
-    def delete_file():
+    # Delete the file if it has been in the env_gen directory for more than 30 minutes
+    def delete_file(filepath):
         try:
-            os.remove(filepath)
+            stat = os.stat(filepath)
+            if time.time() - stat.st_ctime > 300:
+                os.remove(filepath)
         except OSError:
             pass
 
-    # Schedule file deletion after 30 minutes
-    threading.Timer(1800, delete_file).start()
+    # Schedule file deletion every 5 minutes
+    def schedule_delete(filepath):
+        delete_file(filepath)
+        threading.Timer(300, schedule_delete, args=[filepath]).start()
 
-    # Call delete_file() immediately to start the timer
-    delete_file()
+    # Call schedule_delete to start the timer
+    schedule_delete(filepath)
 
     return filename
 
