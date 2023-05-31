@@ -61,7 +61,6 @@ Click the "Generate New Address" button to create a new Bitcoin address and upda
 
 # Add cronjob for wallet saves deletion!
    ```bash
-   ```bash
    crontab -e
    ```
    ```bash
