@@ -58,9 +58,16 @@ Click the "Generate New Address" button to create a new Bitcoin address and upda
 - You can modify the HTML template in the `wallet_generator.py` file to customize the appearance of the wallet details page.
 - To use custom fonts for the text on the paper wallet, copy your font files (`.ttf` or `.otf`) to the project directory and update the font paths in the `wallet_generator.py` file.
 
+
+# Add cronjob for wallet saves deletion!
+   ```bash
+*/5 * * * * rm -rf /path/to/directory/*
+```
+Make sure to change the cronjob path to the directory matching on your system.
+
+
 ## Note
 
-
-- The generated private keys are only displayed temporarily! Deletion time can be customized.
+- The generated private keys are only displayed temporarily! Deletion time can be customized via cron.
 - Launch with screen and detach from session, change the port if you wish.
 - If this helped you in some way please donate some BTC to: bc1qywm3pcgtwv2wx42ue9zelepdgukp4t94krh0va
