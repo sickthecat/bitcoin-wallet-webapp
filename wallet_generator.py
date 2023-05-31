@@ -2,7 +2,6 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 import ssl
 from bit import Key
-import qrcode
 from PIL import Image, ImageDraw, ImageFont
 import io
 import os
@@ -31,6 +30,10 @@ class BitcoinWalletHandler(SimpleHTTPRequestHandler):
             filename = os.path.basename(self.path)
             with open(os.path.join(TEMP_FOLDER, filename), 'rb') as image:
                 self.wfile.write(image.read())
+            return
+        elif self.path.startswith('/env_gen'):
+            # Return 404 error for /env_gen path
+            self.send_error(404)
             return
         else:
             # Create a new key
@@ -150,6 +153,9 @@ def generate_paper_wallet(private_key, bitcoin_address, segwit_address):
     # Schedule file deletion after 30 minutes
     threading.Timer(1800, delete_file).start()
 
+    # Call delete_file() immediately to start the timer
+    delete_file()
+
     return filename
 
 # Create the temporary folder if it doesn't exist
@@ -159,9 +165,9 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     pass
 
 if __name__ == "__main__":
-    httpd = ThreadedHTTPServer(('', 8000), BitcoinWalletHandler)
+    httpd = ThreadedHTTPServer(('', 8002), BitcoinWalletHandler)
     httpd.socket = ssl.wrap_socket(httpd.socket,
                                    keyfile="privkey.pem",
                                    certfile='fullchain.pem', server_side=True)
-    print("Server running on port 8000...")
+    print("Server running on port 8002...")
     httpd.serve_forever()
