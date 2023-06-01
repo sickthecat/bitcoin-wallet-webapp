@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import os
 import uuid
+from urllib.parse import parse_qs
 
 # Define the absolute path of the folder to store temporary images
 TEMP_FOLDER = os.path.abspath("env_gen")
@@ -34,7 +35,72 @@ class BitcoinWalletHandler(SimpleHTTPRequestHandler):
             self.send_error(404)
             return
         else:
-            # Create a new key
+            # Return the form to generate a new wallet
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            html_template = """
+            <html>
+                <head>
+                    <style>
+                        body {{
+                            background-color: black;
+                            color: white;
+                            font-size: small;
+                            font-family: 'Courier New', Courier, monospace;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            height: 100vh;
+                            margin: 0;
+                        }}
+                        .container {{
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            border: 1px solid grey;
+                            padding: 10px;
+                            text-align: center;
+                            max-width: 500px;
+                        }}
+                        button {{
+                            margin-top: 10px;
+                        }}
+                        .donation {{
+                            position: absolute;
+                            bottom: 10px;
+                            left: 50%;
+                            transform: translateX(-50%);
+                            font-size: small;
+                            text-align: center;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <img src="logo.png" alt="sickthecat" style="position: absolute; top: 10px; left: 10px; width: 100px; height: 100px;">
+                    <div class="container">
+                        Bitcoin Address: ..........<br>
+                        Segwit Address: ..........<br>
+                        Private Key: ..........<br>
+                        <br>
+                        <a href="#" download="#"></a><br>
+                        <br>
+                        <form method="post" action="/">
+                            <button type="submit">Generate New Address</button>
+                        </form>
+                    </div>
+                    <div class="donation">
+                        DOEN8 BTC TO: bc1qywm3pcgtwv2wx42ue9zelepdgukp4t94krh0va
+                    </div>
+                </body>
+            </html>
+            """.format(bitcoin_address="", segwit_address="", private_key="", filename="")
+            self.wfile.write(bytes(html_template, 'utf-8'))
+
+    def do_POST(self):
+        if self.path == '/':
+            # Generate a new wallet
             k = Key()
 
             # Generate the private key in WIF format
@@ -100,7 +166,7 @@ class BitcoinWalletHandler(SimpleHTTPRequestHandler):
                         <br>
                         <a href="/{filename}" download="{filename}">Download Paper Wallet</a><br>
                         <br>
-                        <form method="get" action="/">
+                        <form method="post" action="/">
                             <button type="submit">Generate New Address</button>
                         </form>
                     </div>
