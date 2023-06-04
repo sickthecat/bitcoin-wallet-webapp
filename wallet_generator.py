@@ -6,7 +6,9 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import os
 import uuid
+import requests
 from urllib.parse import parse_qs
+import json
 
 # Define the absolute path of the folder to store temporary images
 TEMP_FOLDER = os.path.abspath("env_gen")
@@ -30,6 +32,15 @@ class BitcoinWalletHandler(SimpleHTTPRequestHandler):
             with open(os.path.join(TEMP_FOLDER, filename), 'rb') as image:
                 self.wfile.write(image.read())
             return
+        elif self.path == '/get_bitcoin_price':
+            # Return the current Bitcoin price as JSON
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            bitcoin_price = get_bitcoin_price()
+            response = {'price': bitcoin_price}
+            self.wfile.write(bytes(json.dumps(response), 'utf-8'))
+            return
         elif self.path.startswith('/env_gen'):
             # Return 404 error for /env_gen path
             self.send_error(404)
@@ -39,7 +50,9 @@ class BitcoinWalletHandler(SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            html_template = """
+            
+            bitcoin_price = get_bitcoin_price()
+            html_template = f"""
             <html>
                 <head>
                     <style>
@@ -75,10 +88,35 @@ class BitcoinWalletHandler(SimpleHTTPRequestHandler):
                             font-size: small;
                             text-align: center;
                         }}
+                        .bitcoin-price {{
+                            font-size: 18px;
+                            margin-top: 10px;
+                            font-size: small;
+                            font-family: 'Courier New', Courier, monospace;
+                        }}
                     </style>
+                    <script>
+                        function updateBitcoinPrice() {{
+                            // Fetch the Bitcoin price from the server using an API endpoint
+                            fetch('/get_bitcoin_price')
+                                .then(response => response.json())
+                                .then(data => {{
+                                    const bitcoinPriceElement = document.getElementById('bitcoin-price');
+                                    bitcoinPriceElement.textContent = 'BTC Price: ' + data.price;
+                                }});
+                        }}
+
+                        // Update Bitcoin price initially
+                        updateBitcoinPrice();
+
+                        // Update Bitcoin price every 60 seconds
+                        setInterval(updateBitcoinPrice, 60000);
+                    </script>
                 </head>
                 <body>
-                    <img src="logo.png" alt="sickthecat" style="position: absolute; top: 10px; left: 10px; width: 100px; height: 100px;">
+                    <div style="position: absolute; top: 10px; left: 10px;">
+                        <img src="logo.png" alt="sickthecat" style="width: 100px; height: 100px;">
+                    </div>
                     <div class="container">
                         Bitcoin Address: ..........<br>
                         Segwit Address: ..........<br>
@@ -89,13 +127,15 @@ class BitcoinWalletHandler(SimpleHTTPRequestHandler):
                         <form method="post" action="/">
                             <button type="submit">Generate New Address</button>
                         </form>
-                    </div>
-                    <div class="donation">
-                        DOEN8 BTC TO: bc1qywm3pcgtwv2wx42ue9zelepdgukp4t94krh0va
-                    </div>
+                        <div class="donation">
+                            DOEN8 BTC TO: bc1qywm3pcgtwv2wx42ue9zelepdgukp4t94krh0va
+                            <br>
+			    <div class="bitcoin-price" id="bitcoin-price"></div>
+
+                        </div>
                 </body>
             </html>
-            """.format(bitcoin_address="", segwit_address="", private_key="", filename="")
+            """
             self.wfile.write(bytes(html_template, 'utf-8'))
 
     def do_POST(self):
@@ -155,10 +195,39 @@ class BitcoinWalletHandler(SimpleHTTPRequestHandler):
                             font-size: small;
                             text-align: center;
                         }}
+
+                        }}
+                        .bitcoin-price {{
+                            font-size: 18px;
+                            margin-top: 10px;
+                            font-size: small;
+                            font-family: 'Courier New', Courier, monospace;
+                        }}
+
                     </style>
+                    <script>
+                        function updateBitcoinPrice() {{
+                            // Fetch the Bitcoin price from the server using an API endpoint
+                            fetch('/get_bitcoin_price')
+                                .then(response => response.json())
+                                .then(data => {{
+                                    const bitcoinPriceElement = document.getElementById('bitcoin-price');
+                                    bitcoinPriceElement.textContent = 'BTC Price: ' + data.price;
+                                }});
+                        }}
+
+                        // Update Bitcoin price initially
+                        updateBitcoinPrice();
+
+                        // Update Bitcoin price every 60 seconds
+                        setInterval(updateBitcoinPrice, 60000);
+                    </script>
+
                 </head>
                 <body>
-                    <img src="logo.png" alt="sickthecat" style="position: absolute; top: 10px; left: 10px; width: 100px; height: 100px;">
+                    <div style="position: absolute; top: 10px; left: 10px;">
+                        <img src="logo.png" alt="sickthecat" style="width: 100px; height: 100px;">
+                    </div>
                     <div class="container">
                         Bitcoin Address: {bitcoin_address}<br>
                         Segwit Address: {segwit_address}<br>
@@ -172,6 +241,9 @@ class BitcoinWalletHandler(SimpleHTTPRequestHandler):
                     </div>
                     <div class="donation">
                         DOEN8 BTC TO: bc1qywm3pcgtwv2wx42ue9zelepdgukp4t94krh0va
+			
+			<br>
+			<div class="bitcoin-price" id="bitcoin-price"></div>
                     </div>
                 </body>
             </html>
@@ -209,6 +281,13 @@ def generate_paper_wallet(private_key, bitcoin_address, segwit_address):
 
     return filename
 
+def get_bitcoin_price():
+    # Make a request to a Bitcoin price API to fetch the current price
+    response = requests.get("https://api.coindesk.com/v1/bpi/currentprice/BTC.json")
+    data = response.json()
+    price = data['bpi']['USD']['rate']
+    return price
+
 # Create the temporary folder if it doesn't exist
 os.makedirs(TEMP_FOLDER, exist_ok=True)
 
@@ -216,9 +295,9 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     pass
 
 if __name__ == "__main__":
-    httpd = ThreadedHTTPServer(('', 8002), BitcoinWalletHandler)
+    httpd = ThreadedHTTPServer(('', 8000), BitcoinWalletHandler)
     httpd.socket = ssl.wrap_socket(httpd.socket,
                                    keyfile="privkey.pem",
                                    certfile='fullchain.pem', server_side=True)
-    print("Server running on port 8002...")
+    print("Server running on port 8000...")
     httpd.serve_forever()
